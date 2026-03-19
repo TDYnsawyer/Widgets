@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- NCAAM Live Scoreboard for Corsair Xeneon / iCUE Nexus -->
+<!-- Host on GitHub Pages and paste the URL into iCUE Web Content widget -->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NCAAM Scoreboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --surface: #111116;
+    --surface2: #18181f;
+    --border: rgba(255,255,255,0.07);
+    --border-live: rgba(220,38,38,0.6);
+    --text: #f0f0f4;
+    --text-muted: #6b6b7a;
+    --text-dim: #3a3a48;
+    --live: #dc2626;
+    --live-glow: rgba(220,38,38,0.15);
+    --accent: #e8c84a;
+    --winner: #f0f0f4;
+    --loser: #3a3a48;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 14px;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+  .logo span { color: var(--live); }
+  .badge {
+    background: var(--live);
+    color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .refresh-info {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+    line-height: 1.5;
+  }
+  .refresh-info strong { color: var(--accent); font-weight: 500; }
+
+  /* FILTER TABS */
+  .filters {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+  }
+  .filter-btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+  .filter-btn.active { background: var(--surface2); color: var(--text); border-color: rgba(255,255,255,0.18); }
+  .filter-btn.live-tab.active { color: var(--live); border-color: var(--live); background: var(--live-glow); }
+
+  /* SUMMARY */
+  .summary {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .summary strong { color: var(--text); font-weight: 500; }
+  .summary .live-count { color: var(--live); }
+  .summary .live-count strong { color: var(--live); }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 16px 0 8px;
+  }
+  .section-label:first-child { margin-top: 0; }
+  .section-label.live-label { color: var(--live); letter-spacing: 1.5px; }
+
+  /* GAME CARDS */
+  .games { display: flex; flex-direction: column; gap: 6px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    transition: border-color 0.2s;
+  }
+  .card.live {
+    border-color: var(--border-live);
+    background: linear-gradient(135deg, #13100f 0%, var(--surface) 100%);
+    box-shadow: 0 0 18px var(--live-glow);
+  }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .status-live {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--live);
+    text-transform: uppercase;
+  }
+  .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--live);
+    animation: blink 1s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }
+  .status-final {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .status-pre {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* MATCHUP */
+  .matchup { display: flex; flex-direction: column; gap: 5px; }
+  .team-row { display: flex; align-items: center; gap: 9px; }
+  .abbr {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    width: 34px;
+    text-align: center;
+    background: var(--surface2);
+    padding: 3px 0;
+    border-radius: 3px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+  .team-name {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 400;
+  }
+  .team-name.w {
+    color: var(--winner);
+    font-weight: 500;
+  }
+  .score {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    min-width: 36px;
+    text-align: right;
+    color: var(--text-muted);
+    line-height: 1;
+  }
+  .score.w { color: var(--winner); }
+  .score.l { color: var(--loser); }
+  .score.dash { font-size: 14px; color: var(--text-dim); }
+  .divider { height: 1px; background: var(--border); margin: 2px 0; }
+
+  /* EMPTY / LOADING */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .loading {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .loading::after {
+    content: '';
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--live);
+    margin-left: 8px;
+    animation: blink 0.8s infinite;
+  }
+  .error-msg {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.7;
+    text-align: center;
+  }
+  .error-msg a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">NCAA<span>M</span></div>
+    <div class="badge">Live</div>
+  </div>
+  <div class="refresh-info" id="refresh-info">Loading…</div>
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+  <button class="filter-btn live-tab" onclick="setFilter('live',this)">Live</button>
+  <button class="filter-btn" onclick="setFilter('final',this)">Final</button>
+  <button class="filter-btn" onclick="setFilter('upcoming',this)">Upcoming</button>
+</div>
+
+<div class="summary" id="summary"></div>
+<div id="container"><div class="loading">Fetching scores from ESPN</div></div>
+
+<script>
+let allGames = [];
+let currentFilter = 'all';
+let refreshTimer = null;
+
+const ESPN_URL = 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?groups=50&limit=100';
+const PROXIES = [
+  u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u => `https://thingproxy.freeboard.io/fetch/${u}`
+];
+
+function getType(g) {
+  const s = g.status?.type?.state;
+  if (s === 'in') return 'live';
+  if (s === 'post') return 'final';
+  return 'upcoming';
+}
+
+function win(competitors, side) {
+  const t = competitors.find(c => c.homeAway === side);
+  return t?.winner === true;
+}
+
+function renderCard(game) {
+  const comp = game.competitions?.[0];
+  if (!comp) return '';
+  const comps = comp.competitors || [];
+  const away = comps.find(c => c.homeAway === 'away') || comps[0];
+  const home = comps.find(c => c.homeAway === 'home') || comps[1];
+  if (!away || !home) return '';
+
+  const type = getType(game);
+  const clock = game.status?.displayClock;
+  const period = game.status?.period;
+  const detail = game.status?.type?.shortDetail || '';
+
+  let statusHtml = '';
+  if (type === 'live') {
+    const p = period === 1 ? '1ST' : period === 2 ? '2ND' : period >= 3 ? 'OT' : '';
+    const t = clock && p ? `${p} ${clock}` : detail;
+    statusHtml = `<div class="status-live"><span class="dot"></span>${t}</div>`;
+  } else if (type === 'final') {
+    statusHtml = `<div class="status-final">${detail || 'Final'}</div>`;
+  } else {
+    statusHtml = `<div class="status-pre">${detail}</div>`;
+  }
+
+  const awayWin = away.winner === true;
+  const homeWin = home.winner === true;
+  const isFinal = type === 'final';
+  const isLive = type === 'live';
+  const isPre = type === 'upcoming';
+
+  const scoreEl = (score, isW) => {
+    if (isPre) return `<span class="score dash">—</span>`;
+    if (isLive) return `<span class="score">${score ?? '—'}</span>`;
+    return `<span class="score ${isW ? 'w' : 'l'}">${score ?? '—'}</span>`;
+  };
+
+  const awayName = away.team?.shortDisplayName || away.team?.name || away.team?.abbreviation || 'Away';
+  const homeName = home.team?.shortDisplayName || home.team?.name || home.team?.abbreviation || 'Home';
+  const awayAbbr = away.team?.abbreviation || '?';
+  const homeAbbr = home.team?.abbreviation || '?';
+
+  return `
+    <div class="card${isLive ? ' live' : ''}">
+      <div class="card-meta">${statusHtml}<span></span></div>
+      <div class="matchup">
+        <div class="team-row">
+          <div class="abbr">${awayAbbr}</div>
+          <span class="team-name${awayWin ? ' w' : ''}">${awayName}</span>
+          ${scoreEl(away.score, awayWin)}
+        </div>
+        <div class="divider"></div>
+        <div class="team-row">
+          <div class="abbr">${homeAbbr}</div>
+          <span class="team-name${homeWin ? ' w' : ''}">${homeName}</span>
+          ${scoreEl(home.score, homeWin)}
+        </div>
+      </div>
+    </div>`;
+}
+
+function render() {
+  const live = allGames.filter(g => getType(g) === 'live');
+  const final = allGames.filter(g => getType(g) === 'final');
+  const upcoming = allGames.filter(g => getType(g) === 'upcoming');
+
+  document.getElementById('summary').innerHTML = `
+    <span><strong>${allGames.length}</strong> games</span>
+    ${live.length ? `<span class="live-count"><strong>${live.length}</strong> live now</span>` : ''}
+    <span><strong>${final.length}</strong> final</span>
+    <span><strong>${upcoming.length}</strong> upcoming</span>
+  `;
+
+  let sections = [];
+  if (currentFilter === 'all') {
+    if (live.length) sections.push({ label: '● Live Now', cls: 'live-label', games: live });
+    if (final.length) sections.push({ label: 'Final', cls: '', games: final });
+    if (upcoming.length) sections.push({ label: 'Upcoming', cls: '', games: upcoming });
+  } else if (currentFilter === 'live') {
+    sections = [{ label: '● Live Now', cls: 'live-label', games: live }];
+  } else if (currentFilter === 'final') {
+    sections = [{ label: 'Final', cls: '', games: final }];
+  } else {
+    sections = [{ label: 'Upcoming', cls: '', games: upcoming }];
+  }
+
+  const container = document.getElementById('container');
+  const hasGames = sections.some(s => s.games.length > 0);
+  if (!hasGames) {
+    container.innerHTML = `<div class="empty">No ${currentFilter === 'all' ? '' : currentFilter + ' '}games right now.</div>`;
+    return;
+  }
+
+  container.innerHTML = sections.map(s => s.games.length ? `
+    <div class="section-label ${s.cls}">${s.label}</div>
+    <div class="games">${s.games.map(renderCard).join('')}</div>
+  ` : '').join('');
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+async function fetchScores() {
+  let data = null;
+  let lastErr = '';
+
+  // Try direct first (works when loaded as local file — no CORS restriction)
+  try {
+    const res = await fetch(ESPN_URL);
+    if (res.ok) data = await res.json();
+  } catch (e) { lastErr = e.message; }
+
+  // Fall back to proxies if direct failed
+  if (!data?.events) {
+    for (const proxyFn of PROXIES) {
+      try {
+        const res = await fetch(proxyFn(ESPN_URL));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        data = await res.json();
+        if (data?.events) break;
+      } catch (e) { lastErr = e.message; data = null; }
+    }
+  }
+
+  if (!data?.events) {
+    document.getElementById('container').innerHTML = `
+      <div class="error-msg">
+        Couldn't reach ESPN right now.<br>
+        <small style="color:#3a3a48">Error: ${lastErr}</small><br><br>
+        Retrying in 60 seconds…
+      </div>`;
+    return;
+  }
+
+  allGames = data.events;
+  const now = new Date();
+  const t = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('refresh-info').innerHTML = `Updated <strong>${t}</strong><br>Refreshes every 60s`;
+  render();
+}
+
+fetchScores();
+refreshTimer = setInterval(fetchScores, 60000);
+</script>
+</body>
+</html>
